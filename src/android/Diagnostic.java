@@ -266,6 +266,11 @@ public class Diagnostic extends CordovaPlugin{
                 switchToWirelessSettings();
                 callbackContext.success();
             } else if(action.equals("isDataRoamingEnabled")) {
+                if(Build.VERSION.SDK_INT <= 32) { // Android 12L
+                    callbackContext.success(isDataRoamingEnabled() ? 1 : 0);
+                } else {
+                    callbackContext.error("Data roaming setting not available on Android 12L / API32+");
+                }
                 callbackContext.success(isDataRoamingEnabled() ? 1 : 0);
             } else if(action.equals("getPermissionAuthorizationStatus")) {
                 this.getPermissionAuthorizationStatus(args);
@@ -315,13 +320,7 @@ public class Diagnostic extends CordovaPlugin{
 
 
     public boolean isDataRoamingEnabled() throws Exception {
-        boolean result;
-        if (Build.VERSION.SDK_INT < 17) {
-            result = Settings.System.getInt(this.cordova.getActivity().getContentResolver(), Settings.Global.DATA_ROAMING, 0) == 1;
-        }else{
-            result = Settings.Global.getInt(this.cordova.getActivity().getContentResolver(), Settings.Global.DATA_ROAMING, 0) == 1;
-        }
-        return result;
+        return Settings.Global.getInt(this.cordova.getActivity().getContentResolver(), Settings.Global.DATA_ROAMING, 0) == 1;
     }
 
     public void switchToAppSettings() {
@@ -658,6 +657,17 @@ public class Diagnostic extends CordovaPlugin{
         return arr;
     }
 
+    protected JSONArray stringArrayToJsonArray(String[] array) throws JSONException{
+        if(array==null)
+            return null;
+
+        JSONArray arr = new JSONArray();
+        for(int i=0; i<array.length; i++) {
+            arr.put(i, array[i]);
+        }
+        return arr;
+    }
+
     protected CallbackContext getContextById(String requestId) throws Exception{
         if (!callbackContexts.containsKey(requestId)) {
             throw new Exception("No context found for request id=" + requestId);
@@ -888,6 +898,15 @@ public class Diagnostic extends CordovaPlugin{
             }
         }
         return codeName;
+    }
+
+    protected String[] concatStrings(String[] A, String[] B) {
+        int aLen = A.length;
+        int bLen = B.length;
+        String[] C= new String[aLen+bLen];
+        System.arraycopy(A, 0, C, 0, aLen);
+        System.arraycopy(B, 0, C, aLen, bLen);
+        return C;
     }
 
     /************
